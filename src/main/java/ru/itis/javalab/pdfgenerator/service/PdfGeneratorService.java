@@ -52,7 +52,7 @@ public class PdfGeneratorService {
         return cell;
     }
 
-    private List createHeader(PdfData pdfData, Font f) throws DocumentException {
+    private List createHeader(PdfData pdfData, Font f) {
         PdfHeader pdfHeader = pdfData.getHeader();
         List list = new List(List.PARAGRAPH);
 
