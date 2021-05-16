@@ -3,11 +3,14 @@ package ru.itis.javalab.pdfgenerator.service;
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.*;
 import com.itextpdf.text.Font;
+import com.itextpdf.text.pdf.PdfPCell;
 
 import org.springframework.stereotype.Service;
 import ru.itis.javalab.pdfgenerator.model.PdfData;
 import ru.itis.javalab.pdfgenerator.model.PdfHeader;
 import ru.itis.javalab.pdfgenerator.model.PdfRow;
+import ru.itis.javalab.pdfgenerator.util.Footer;
+import ru.itis.javalab.pdfgenerator.util.PdfPageXofEventHelper;
 
 import java.io.*;
 import java.text.SimpleDateFormat;
@@ -55,6 +58,7 @@ public class PdfGeneratorService {
 
         list.setListSymbol("");
 
+        // TODO tab add
         list.add(new ListItem(new Phrase("Институт: " + pdfHeader.getInstitute(), f)));
         list.add(new ListItem(new Phrase("Логин: "+ pdfHeader.getLogin(), f)));
         list.add(new ListItem(new Phrase("Количество студентов: "+ pdfData.getRows().size(), f)));
@@ -71,20 +75,32 @@ public class PdfGeneratorService {
     }
 
 
-    public void create(Document document, PdfData pdfData) throws IOException, DocumentException {
+    public void create(Document document, PdfWriter writer, PdfData pdfData) throws IOException, DocumentException {
         BaseFont bf=BaseFont.createFont(FONT, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
 
-        /* -------------------------------- id -------------------------------- */
-        Font f1 = new Font(bf,10, Font.NORMAL);
-        Paragraph paragraph1 = new Paragraph("Подготовленный отчет по данным \n по № " + pdfData.getId(), f1);
-        paragraph1.setAlignment(Element.ALIGN_RIGHT);
-
-        document.add(paragraph1);
+        PdfPTable headerTable = new PdfPTable(2);
+        headerTable.setWidthPercentage(100);
+        headerTable.setWidths(new int[]{1, 3});
 
         /* -------------------------------- img -------------------------------- */
         Image image = Image.getInstance(IMAGE_PATH);
-        image.scaleToFit(100, 100);
-        document.add(image);
+        PdfPCell imgCell = new PdfPCell(image, true);
+        imgCell.setBorder(Rectangle.NO_BORDER);
+        imgCell.setPaddingBottom(30);
+
+        /* -------------------------------- id -------------------------------- */
+        PdfPCell pCell = new PdfPCell();
+        Font f1 = new Font(bf,10, Font.NORMAL);
+        Paragraph paragraph1 = new Paragraph("Подготовленный отчет по данным \n по № " + pdfData.getId(), f1);
+        paragraph1.setAlignment(Element.ALIGN_RIGHT);
+        pCell.addElement(paragraph1);
+        pCell.setVerticalAlignment(Element.ALIGN_TOP);
+        pCell.setBorder(Rectangle.NO_BORDER);
+
+        headerTable.addCell(imgCell);
+        headerTable.addCell(pCell);
+        document.add(headerTable);
+
 
         /* ------------------------------- header ------------------------------- */
         Font f2 = new Font(bf,10, Font.NORMAL);
@@ -126,6 +142,13 @@ public class PdfGeneratorService {
         Font f3 = new Font(bf,9, Font.NORMAL);
         Paragraph paragraph2 = new Paragraph("Примечание: время указано в часовом поясе MSK (UTC+3) в соответствии системными часами сервера или APM.", f3);
         document.add(paragraph2);
+
+        /* ------------------------------ footer ------------------------------ */
+        PdfPTable footerTable = new PdfPTable(1);
+        Footer footer = new Footer(footerTable);
+        footer.setTableFooter(writer);
+        document.add(footerTable);
+
         document.newPage();
     }
 
@@ -133,15 +156,20 @@ public class PdfGeneratorService {
     public void generate(HashMap<String, PdfData> hashMap) throws IOException {
         Document document = new Document(PageSize.A4);
         PdfWriter writer = null;
+
         try {
             writer = PdfWriter.getInstance(document,
                     new FileOutputStream("pdf/" + "string" + PdfGeneratorService.EXTENSION));
 
+
+            writer.setViewerPreferences(PdfWriter.PageLayoutOneColumn);
+            writer.setPageEvent(new PdfPageXofEventHelper());
             document.open();
 
             for (Map.Entry<String, PdfData> pdfData: hashMap.entrySet()) {
-                create(document, pdfData.getValue());
+                create(document, writer, pdfData.getValue());
             }
+
         } catch (FileNotFoundException | DocumentException e) {
             e.printStackTrace();
         } finally {
