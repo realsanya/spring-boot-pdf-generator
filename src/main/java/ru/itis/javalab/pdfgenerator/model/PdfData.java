@@ -14,6 +14,7 @@ import java.util.List;
 @XmlRootElement(name = "root")
 @XmlAccessorType(XmlAccessType.FIELD)
 public class PdfData implements Serializable {
+    //Я бы предпочел jackson
     @XmlElement(name = "id")
     private String id;
     @XmlElement(name = "header")

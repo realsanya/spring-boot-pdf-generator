@@ -24,6 +24,7 @@ public class PdfController {
     @RequestMapping(value = "/generate", method = RequestMethod.POST,
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE })
     @ResponseStatus(code = HttpStatus.OK)
+    //Логичнее было сделать DTO, которое просто содержит в себе список, а не принимать HashMap
     public String generatePdf(@RequestBody HashMap<String, PdfData> pdfData) throws IOException {
         pdfGeneratorService.generate(pdfData);
         return "Success";
