@@ -20,6 +20,7 @@ import java.util.Map;
 
 @Service
 public class PdfGeneratorService {
+    // Про application.properties забыли? Откуда вдруг тут статические значения
     private static final String EXTENSION = ".pdf";
     private static final String IMAGE_PATH = "src/main/resources/logo.jpeg";
     private static final String FONT = "src/main/resources/arial.ttf";
@@ -74,7 +75,8 @@ public class PdfGeneratorService {
         return list;
     }
 
-
+    // Метод очень большой, дебажить его очень сложно. Молодец, что вынесла создание ячейки и заголовка, но лучше ещё больше раздробить и раскидать по классам.
+    // Если в коде начинаешь комментариями отделять логические состовляющие метода, то это уже сигнал того, что метод перегружен
     public void create(Document document, PdfWriter writer, PdfData pdfData) throws IOException, DocumentException {
         BaseFont bf=BaseFont.createFont(FONT, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
 
@@ -125,6 +127,7 @@ public class PdfGeneratorService {
         table.setHeaderRows(6);
 
         int length = pdfData.getRows().size();
+        // Фу, for
         for (int counter = 0; counter < length; counter ++) {
             PdfRow row = pdfData.getRows().get(counter);
             Integer type = counter + 1;
