@@ -1,4 +1,4 @@
-package ru.itis.javalab.pdfgenerator.util;
+package ru.itis.javalab.pdfgenerator.events;
 
 import com.itextpdf.text.Document;
 import com.itextpdf.text.ExceptionConverter;

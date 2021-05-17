@@ -5,12 +5,12 @@ import com.itextpdf.text.pdf.*;
 import com.itextpdf.text.Font;
 import com.itextpdf.text.pdf.PdfPCell;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import ru.itis.javalab.pdfgenerator.model.PdfData;
 import ru.itis.javalab.pdfgenerator.model.PdfHeader;
 import ru.itis.javalab.pdfgenerator.model.PdfRow;
-import ru.itis.javalab.pdfgenerator.util.Footer;
-import ru.itis.javalab.pdfgenerator.util.PdfPageXofEventHelper;
+import ru.itis.javalab.pdfgenerator.events.PdfPageXofEventHelper;
 
 import java.io.*;
 import java.text.SimpleDateFormat;
@@ -20,10 +20,14 @@ import java.util.Map;
 
 @Service
 public class PdfGeneratorService {
-    // Про application.properties забыли? Откуда вдруг тут статические значения
-    private static final String EXTENSION = ".pdf";
-    private static final String IMAGE_PATH = "src/main/resources/logo.jpeg";
-    private static final String FONT = "src/main/resources/arial.ttf";
+    //TODO Про application.properties забыли? Откуда вдруг тут статические значения
+    @Value("${pdf.generator.extension}")
+    private String EXTENSION;
+    @Value("${pdf.generator.img}")
+    private String IMAGE_PATH;
+    @Value("${pdf.generator.font}")
+    private String FONT;
+
     private static final SimpleDateFormat dateFormatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
     private static final SimpleDateFormat dateFormatter1 = new SimpleDateFormat("HH:mm:ss dd.MM.yyyy");
 
@@ -53,6 +57,31 @@ public class PdfGeneratorService {
         return cell;
     }
 
+    private PdfPTable createTopHeader(PdfData pdfData, BaseFont bf) throws IOException, DocumentException {
+        PdfPTable topTable = new PdfPTable(2);
+        topTable.setWidthPercentage(100);
+        topTable.setWidths(new int[]{1, 3});
+
+        /* -------------------------------- img -------------------------------- */
+        Image image = Image.getInstance(IMAGE_PATH);
+        PdfPCell imgCell = new PdfPCell(image, true);
+        imgCell.setBorder(Rectangle.NO_BORDER);
+        imgCell.setPaddingBottom(30);
+
+        /* -------------------------------- id -------------------------------- */
+        PdfPCell pCell = new PdfPCell();
+        Font f1 = new Font(bf,10, Font.NORMAL);
+        Paragraph paragraph1 = new Paragraph("Подготовленный отчет по данным \n по № " + pdfData.getId(), f1);
+        paragraph1.setAlignment(Element.ALIGN_RIGHT);
+        pCell.addElement(paragraph1);
+        pCell.setVerticalAlignment(Element.ALIGN_TOP);
+        pCell.setBorder(Rectangle.NO_BORDER);
+
+        topTable.addCell(imgCell);
+        topTable.addCell(pCell);
+        return topTable;
+    }
+
     private List createHeader(PdfData pdfData, Font f) {
         PdfHeader pdfHeader = pdfData.getHeader();
         List list = new List(List.PARAGRAPH);
@@ -75,41 +104,7 @@ public class PdfGeneratorService {
         return list;
     }
 
-    // Метод очень большой, дебажить его очень сложно. Молодец, что вынесла создание ячейки и заголовка, но лучше ещё больше раздробить и раскидать по классам.
-    // Если в коде начинаешь комментариями отделять логические состовляющие метода, то это уже сигнал того, что метод перегружен
-    public void create(Document document, PdfWriter writer, PdfData pdfData) throws IOException, DocumentException {
-        BaseFont bf=BaseFont.createFont(FONT, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
-
-        PdfPTable headerTable = new PdfPTable(2);
-        headerTable.setWidthPercentage(100);
-        headerTable.setWidths(new int[]{1, 3});
-
-        /* -------------------------------- img -------------------------------- */
-        Image image = Image.getInstance(IMAGE_PATH);
-        PdfPCell imgCell = new PdfPCell(image, true);
-        imgCell.setBorder(Rectangle.NO_BORDER);
-        imgCell.setPaddingBottom(30);
-
-        /* -------------------------------- id -------------------------------- */
-        PdfPCell pCell = new PdfPCell();
-        Font f1 = new Font(bf,10, Font.NORMAL);
-        Paragraph paragraph1 = new Paragraph("Подготовленный отчет по данным \n по № " + pdfData.getId(), f1);
-        paragraph1.setAlignment(Element.ALIGN_RIGHT);
-        pCell.addElement(paragraph1);
-        pCell.setVerticalAlignment(Element.ALIGN_TOP);
-        pCell.setBorder(Rectangle.NO_BORDER);
-
-        headerTable.addCell(imgCell);
-        headerTable.addCell(pCell);
-        document.add(headerTable);
-
-
-        /* ------------------------------- header ------------------------------- */
-        Font f2 = new Font(bf,10, Font.NORMAL);
-        document.add(createHeader(pdfData, f2));
-
-
-        /* ------------------------------- table ------------------------------- */
+    private PdfPTable createTable(PdfData pdfData) throws IOException, DocumentException {
         float[] columnWidths = {2, 2, 2, 3, 3, 2};
         PdfPTable table = new PdfPTable(columnWidths);
         table.setWidthPercentage(100);
@@ -127,7 +122,7 @@ public class PdfGeneratorService {
         table.setHeaderRows(6);
 
         int length = pdfData.getRows().size();
-        // Фу, for
+        //TODO  Фу, for
         for (int counter = 0; counter < length; counter ++) {
             PdfRow row = pdfData.getRows().get(counter);
             Integer type = counter + 1;
@@ -140,7 +135,24 @@ public class PdfGeneratorService {
             table.addCell(createCell(row.getIp(), type));
         }
 
-        document.add(table);
+        return table;
+    }
+
+
+
+    //TODO Метод очень большой, дебажить его очень сложно. Молодец, что вынесла создание ячейки и заголовка, но лучше ещё больше раздробить и раскидать по классам.
+    // Если в коде начинаешь комментариями отделять логические состовляющие метода, то это уже сигнал того, что метод перегружен
+    public void create(Document document, PdfWriter writer, PdfData pdfData) throws IOException, DocumentException {
+        BaseFont bf=BaseFont.createFont(FONT, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+
+        document.add(createTopHeader(pdfData, bf));
+
+        /* ------------------------------- header ------------------------------- */
+        Font f2 = new Font(bf,10, Font.NORMAL);
+        document.add(createHeader(pdfData, f2));
+
+        /* ------------------------------- table ------------------------------- */
+        document.add(createTable(pdfData));
 
         Font f3 = new Font(bf,9, Font.NORMAL);
         Paragraph paragraph2 = new Paragraph("Примечание: время указано в часовом поясе MSK (UTC+3) в соответствии системными часами сервера или APM.", f3);
@@ -162,7 +174,7 @@ public class PdfGeneratorService {
 
         try {
             writer = PdfWriter.getInstance(document,
-                    new FileOutputStream("pdf/" + "string" + PdfGeneratorService.EXTENSION));
+                    new FileOutputStream("pdf/" + "string" + EXTENSION));
 
 
             writer.setViewerPreferences(PdfWriter.PageLayoutOneColumn);
@@ -174,7 +186,7 @@ public class PdfGeneratorService {
             }
 
         } catch (FileNotFoundException | DocumentException e) {
-            e.printStackTrace();
+            throw new IllegalStateException(e);
         } finally {
             document.close();
             writer.close();
